@@ -1,0 +1,2607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- 👇 新增全屏+沉浸式代码 -->
+  <meta name="apple-mobile-web-app-capable" content="yes"> <!-- iOS全屏 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <!-- iOS状态栏透明 -->
+  <meta name="theme-color" content="#000000"> <!-- 安卓状态栏颜色（设为页面背景色） -->
+
+    <title>情義江湖点歌系统</title>
+    <style>
+
+ * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* 统一盒模型，避免尺寸错乱 */
+  }
+  body {
+    width: 100vw; /* 宽度占满屏幕 */
+    height: 100vh; /* 高度占满屏幕 */
+    overflow-x: hidden; /* 禁止横向滚动 */
+  }
+  /* 若有图片，加这行让图片自适应 */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif; 
+            color: #fff; 
+            min-height: 100vh;
+            background-color: #8B0000; 
+            background-image: none;
+            overflow-x: hidden; 
+            overflow-y: hidden; /* 禁止body整体滚动 */
+            -webkit-overflow-scrolling: touch;
+            padding: 0; /* 移除body默认padding，避免布局偏移 */
+        }
+        .bg-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background-size: cover; background-position: center; opacity: 0.5;
+            transition: opacity 0.3s ease, background-image 0.3s ease;
+        }
+        /* 主容器：适配固定栏的高度 */
+        .container {
+            background-color: transparent; 
+            border-radius: 0; /* 取消圆角，避免固定栏遮挡 */
+            box-shadow: none;
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column;
+            height: 100vh; /* 占满视口高度 */
+            width: 100%;
+            position: relative;
+        }
+        /* 顶部标题栏：固定在最顶部 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.2); color: #FFD700; padding: 15px; text-align: center;
+            border-bottom: 2px solid #FF6B6B; 
+            z-index: 100; /* 确保在最上层 */
+            height: 80px; /* 固定高度 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header h1 {
+            font-size: 28px; font-weight: 800; letter-spacing: 2px; font-family: 'Arial Black', sans-serif;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8); margin: 0;
+        }
+        /* 功能栏（标签+搜索）：固定在标题栏下方 - 调整高度避免挤压 */
+        .fixed-header {
+            position: fixed;
+            top: 80px; /* 对应header的高度 */
+            left: 0;
+            width: 100%;
+            background-color: rgba(0,0,0,0.2); 
+            padding: 12px; 
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            z-index: 90; /* 低于标题栏，高于歌曲列表标题 */
+            height: 140px; /* 从160px调整为140px，适配搜索框高度变化 */
+            box-sizing: border-box;
+        }
+        .artist-section { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 10px; 
+            margin-bottom: 12px; 
+            height: 80px; /* 固定标签栏高度 */
+        }
+        .tag-btn {
+            height: 40px; background-color: rgba(255,255,255,0.1); color: #fff; border-radius: 8px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.2);
+            text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; align-items: center;
+            justify-content: center; font-size: 11px; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; padding: 0 8px;
+        }
+        .tag-btn:active { transform: scale(0.95); background-color: rgba(255,215,0,0.3); }
+        .tag-btn.active {
+            background: linear-gradient(45deg, #FFD700, #FFA500); color: #8B0000;
+            box-shadow: 0 4px 8px rgba(255,215,0,0.4);
+        }
+        .search-box { 
+            background-color: transparent; 
+            padding: 0; 
+            margin-top: 10px;
+            height: 36px; /* 从50px调整为36px，缩小搜索框容器高度 */
+        }
+        #searchInput {
+            width: 100%; 
+            padding: 8px 15px; /* 从12px 15px调整为8px 15px，减少内边距 */
+            border-radius: 6px; 
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 14px; /* 从15px调整为14px，适配高度 */
+            color: #fff; 
+            background-color: rgba(0,0,0,0.2); 
+            outline: none;
+            height: 100%; /* 占满搜索框容器高度 */
+        }
+        #searchInput::placeholder { color: #ccc; }
+        /* 歌曲列表标题栏：重新调整定位，彻底避免重叠 */
+        .list-title {
+            position: fixed;
+            top: 220px; /* 从240px调整为220px (80+140)，适配fixed-header高度变化 */
+            left: 0;
+            width: 100%;
+            padding: 10px 15px; 
+            background-color: rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 8px;
+            z-index: 80; /* 低于搜索栏，高于歌曲列表 */
+            height: 50px; /* 固定高度 */
+        }
+        .list-title h2 {
+            font-size: 14px;
+            color: #FFD700; font-weight: 700; border-left: 3px solid #FFD700;
+            padding-left: 8px; margin: 0; display: flex; align-items: center; flex: 1;
+            line-height: 1;
+        }
+        .song-count { 
+            margin-left: 8px; 
+            font-size: 12px;
+            color: #fff !important; 
+        }
+        .list-control-btn {
+            background: none; border: none; padding: 6px 10px; 
+            border-radius: 0; cursor: pointer;
+            display: flex; align-items: center; gap: 4px; 
+            font-size: 12px;
+            color: #FFD700;
+            font-weight: bold; transition: background-color 0.2s;
+            height: 35px;
+        }
+        .list-control-btn:hover { background-color: rgba(255,255,255,0.2); }
+        .arrow-icon { 
+            width: 12px;
+            height: 12px; 
+            fill: #FFD700; 
+        }
+        /* 弹窗调整：避免被固定栏遮挡 */
+        .modal {
+            display: none; 
+            position: absolute; 
+            top: 10px; 
+            right: 12px; 
+            width: 160px; 
+            height: auto;
+            background-color: transparent; 
+            z-index: 1001; /* 高于所有固定栏 */
+            padding: 0;
+            margin-top: 10px;
+        }
+        .modal-content {
+            background-color: rgba(34,34,34,0.8); 
+            padding: 15px; 
+            border-radius: 10px; 
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(255,215,0,0.4); 
+            border: 1px solid #FFD700; 
+            margin-top: 0;
+        }
+        .modal-title {
+            color: #FFD700; 
+            margin-bottom: 10px; 
+            font-size: 14px; 
+            text-align: center;
+            border-bottom: 1px solid #FFD700; 
+            padding-bottom: 8px;
+        }
+        .modal-option {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 6px 0;
+            border-bottom: 1px solid #333; 
+            color: #fff; 
+            font-size: 12px;
+        }
+        .modal-option label { flex: 1; }
+        .modal-option input { transform: scale(1); margin-right: 5px; }
+        .modal-footer { display: flex; justify-content: space-around; margin-top: 10px; }
+        .modal-btn {
+            padding: 4px 10px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-weight: bold; 
+            font-size: 12px;
+        }
+        .btn-confirm { background-color: #FFD700; color: #8B0000; }
+        .btn-cancel { background-color: #555; color: #fff; }
+        
+        /* 歌曲列表滚动容器：调整顶部位置+优化padding，释放可用宽度 */
+        .song-list-wrapper {
+            position: fixed;
+            top: 270px; /* 从290px调整为270px (220+50)，适配list-title位置变化 */
+            left: 0;
+            bottom: 65px; 
+            width: 100%;
+            padding: 10px 8px 15px 8px; /* 左右padding从15px改为8px，减少挤压 */
+            overflow-y: auto !important;
+            overflow-x: hidden;
+            background-color: rgba(0,0,0,0.1);
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            z-index: 70; /* 最低层级 */
+        }
+        
+        /* 滚动条美化 */
+        .song-list-wrapper::-webkit-scrollbar { width: 6px; }
+        .song-list-wrapper::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 3px; }
+        .song-list-wrapper::-webkit-scrollbar-thumb { background: #FF6B6B; border-radius: 3px; }
+        
+        /* 歌曲列表容器（Grid布局）：适配手机屏幕的自适应规则 */
+        .song-list-content {
+            display: grid; 
+            gap: 8px; 
+            transition: all 0.3s ease; /* 增加过渡动画 */
+            width: 100%;
+            padding-bottom: 15px;
+        }
+        /* 核心修改：降低最小宽度阈值，适配手机 */
+        .song-list-content.single-col { 
+            grid-template-columns: 1fr; 
+        }
+        .song-list-content.two-col { 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* 从280px改为140px */
+        }
+        .song-list-content.three-col { 
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* 从200px改为100px */
+        }
+        
+        /* 歌曲项样式：适配手机小宽度布局 */
+        .song-item {
+            display: flex; 
+            align-items: center; 
+            background: rgba(255,255,255,0.08); 
+            border-radius: 8px;
+            padding: 8px 8px; /* 从10px 12px改为8px 8px */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative; 
+            transition: background-color 0.3s ease;
+            min-height: 55px; /* 从65px改为55px */
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+        .song-item.collect-active {
+            background-color: rgba(255,255,255,0.08); 
+            border-color: rgba(255,255,255,0.1);
+        }
+        /* 缩小缩略图，适配手机小宽度 */
+        .thumbnail {
+            width: clamp(30px, 8vw, 40px); /* 从35px/45px改为30px/40px */
+            height: clamp(30px, 8vw, 40px); 
+            border-radius: 6px; 
+            overflow: hidden; 
+            flex-shrink: 0;
+            background: #fff;
+            margin-right: 5px; 
+        }
+        .placeholder-img {
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            color: #333; 
+            font-weight: bold; 
+            font-size: clamp(10px, 2vw, 12px); /* 自适应文字大小 */
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+        }
+        /* 优化歌曲详情padding，避免收藏星标遮挡 */
+        .song-details {
+            flex: 1; 
+            margin-left: 5px;
+            overflow: hidden;
+            padding-right: 20px; /* 从25px改为20px */
+        }
+        .song-title {
+            font-size: clamp(12px, 3vw, 14px); /* 自适应标题大小 */
+            font-weight: 600; 
+            color: #fff; 
+            margin-bottom: 4px;
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .song-artist {
+            font-size: clamp(10px, 2vw, 11px); /* 自适应歌手名大小 */
+            color: #ccc; 
+            white-space: nowrap; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .collect-star {
+            position: absolute; 
+            right: clamp(10px, 3%, 15px); 
+            bottom: clamp(10px, 3%, 15px); 
+            font-size: clamp(12px, 2vw, 15px);
+            color: #fff; 
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.2s ease;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .collect-star.active { color: #FFD700; transform: scale(1.1); }
+        .collect-star:active { transform: scale(0.9); }
+        .no-song-tip {
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100%;
+            color: #ccc; 
+            font-size: 16px;
+            padding: 20px 0;
+        }
+        .collect-tip {
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            padding: 10px 20px; 
+            background-color: rgba(0,0,0,0.8); 
+            color: #FFD700; 
+            border-radius: 6px;
+            font-size: 14px; 
+            z-index: 9999; 
+            opacity: 0; 
+            transition: opacity 0.3s ease; 
+            pointer-events: none;
+        }
+        .collect-tip.show { opacity: 1; }
+        
+        /* 收藏页面修复：同步调整间距 */
+        .collect-page {
+            display: none; 
+            position: fixed;
+            top: 270px; /* 从290px调整为270px，同步歌曲列表位置 */
+            left: 0;
+            bottom: 65px;
+            width: 100%;
+            padding: 15px 8px; /* 同步优化padding */
+            text-align: center; 
+            align-items: flex-start; 
+            justify-content: flex-start;
+            flex-direction: column; 
+            color: #ccc;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            z-index: 70;
+            background-color: rgba(0,0,0,0.1);
+        }
+        .collect-page h3 { color: #FFD700; margin-bottom: 15px; width: 100%; text-align: center; }
+        .collect-page .song-list-content {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .collect-page .song-item {
+            min-height: 55px; /* 同步调整最小高度 */
+            width: 100%;
+        }
+        .collect-page .song-details { padding-right: 20px; /* 同步调整padding */ }
+        
+        /* 设置页面修复：适配固定布局 */
+        .setting-page {
+            display: none; 
+            position: fixed;
+            top: 80px; 
+            left: 0;
+            bottom: 65px;
+            width: 100%;
+            background-color: rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px); 
+            flex-direction: row;
+            overflow-y: hidden;
+            z-index: 85; 
+        }
+        .setting-sidebar {
+            width: 120px; 
+            background-color: rgba(0,0,0,0.3); 
+            padding: 15px 0; 
+            flex-shrink: 0;
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px;
+            height: 100%;
+        }
+        .setting-sidebar-btn {
+            height: 40px; 
+            line-height: 40px; 
+            text-align: center; 
+            color: #fff; 
+            font-size: 14px;
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            border-left: 3px solid transparent;
+        }
+        .setting-sidebar-btn.active {
+            background-color: rgba(255,215,0,0.2); 
+            color: #FFD700; 
+            border-left-color: #FFD700;
+        }
+        .setting-content { 
+            flex-grow: 1; 
+            padding: 20px; 
+            overflow-y: auto !important; 
+            display: none;
+            -webkit-overflow-scrolling: touch; 
+            touch-action: pan-y; 
+            height: 100%; 
+        }
+        .setting-content.active { display: block; }
+        .setting-group {
+            background-color: rgba(0,0,0,0.2); 
+            border-radius: 8px; 
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .setting-group h3 { color: #FFD700; margin-bottom: 10px; font-size: 16px; }
+        .setting-item {
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        .setting-item label { font-size: 14px; color: #fff; }
+        .setting-item input, .setting-item select {
+            padding: 8px 10px; 
+            border-radius: 4px; 
+            border: 1px solid rgba(255,255,255,0.2);
+            background-color: rgba(0,0,0,0.3); 
+            color: #fff; 
+            outline: none; 
+            width: 100%;
+        }
+        .setting-item input[type="range"] { padding: 0; }
+        .color-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .color-block {
+            width: 30px; 
+            height: 30px; 
+            border-radius: 50%; 
+            cursor: pointer;
+            border: 2px solid transparent; 
+            transition: transform 0.2s ease;
+        }
+        .color-block:hover { transform: scale(1.1); }
+        .color-block.active { border-color: #FFD700; }
+        .software-info { font-size: 16px; line-height: 2; color: #eee; padding: 20px; }
+        
+        /* 底部导航栏 */
+        .tab-bar {
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 65px; 
+            background: rgba(0,0,0,0.5); 
+            display: flex; 
+            justify-content: space-around;
+            align-items: center; 
+            z-index: 100; 
+            border-top: 2px solid #FFD700;
+        }
+        .tab-item {
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            color: #ccc; 
+            cursor: pointer; 
+            transition: color 0.2s ease; 
+            font-size: 12px; 
+            gap: 4px;
+            padding: 5px 0; 
+        }
+        .tab-item.active { color: #FFD700; }
+        .tab-icon { font-size: 20px; }
+
+        /* 首页容器 */
+        .home-page {
+            display: block;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* 媒体查询：精细化适配不同手机屏幕 */
+        @media (max-width: 360px) {
+            .song-list-content.three-col {
+                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            }
+            .song-item {
+                padding: 6px 6px;
+                min-height: 50px;
+            }
+        }
+        @media (min-width: 400px) {
+            .song-list-content.two-col {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<base target="_blank">
+</head>
+<body>
+    <div class="bg-container" id="bgContainer"></div>
+    <div class="collect-tip" id="collectTip"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1 id="title">情義江湖点歌系统</h1>
+        </div>
+
+        <div class="home-page" id="homePage">
+            <div class="fixed-header">
+                <div class="artist-section" id="tagContainer">
+                    <button class="tag-btn active" data-artist="all">歌单大全</button>
+                    <button class="tag-btn" data-artist="judy">女歌 Judy</button>
+                    <button class="tag-btn" data-artist="ting">女歌 小婷</button>
+                    <button class="tag-btn" data-artist="bao">女歌 BAOBAO</button>
+                    <button class="tag-btn" data-artist="zhiyu">男歌 致宇</button>
+                    <button class="tag-btn" data-artist="echo">男歌 Echo</button>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索歌曲">
+                </div>
+            </div>
+
+            <div class="list-title">
+                <h2 id="listTitle">歌曲列表 <span id="countText" class="song-count">(0首)</span></h2>
+                <button id="layoutTrigger" class="list-control-btn">
+                    <span id="layoutText">布局</span>
+                    <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M7 10l5 5 5-5z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button id="sortTrigger" class="list-control-btn">
+                    <span id="sortText">排序</span>
+                    <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M7 10l5 5 5-5z" fill="currentColor"/>
+                    </svg>
+                </button>
+
+                <div id="layoutModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-title" id="layoutModalTitle">布局设置</div>
+                        <div class="modal-option">
+                            <label for="layoutSingle">单排显示</label>
+                            <input type="radio" id="layoutSingle" name="layoutType" value="single" checked>
+                        </div>
+                        <div class="modal-option">
+                            <label for="layoutDouble">双排显示</label>
+                            <input type="radio" id="layoutDouble" name="layoutType" value="double">
+                        </div>
+                        <div class="modal-option">
+                            <label for="layoutTriple">三排显示</label>
+                            <input type="radio" id="layoutTriple" name="layoutType" value="triple">
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-btn btn-cancel" id="layoutCancelBtn">取消</button>
+                            <button class="modal-btn btn-confirm" id="layoutConfirmBtn">确定</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sortModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-title" id="sortModalTitle">排序设置</div>
+<div class="modal-option">
+    <label for="orderAsc">正序 (A-Z)</label>
+    <input type="radio" id="orderAsc" name="sortOrder" value="asc">
+</div>
+<div class="modal-option">
+    <label for="orderDesc">倒序 (Z-A)</label>
+    <input type="radio" id="orderDesc" name="sortOrder" value="desc">
+</div>
+<div class="modal-option">
+    <label for="orderRandom">随机排序</label>
+    <input type="radio" id="orderRandom" name="sortOrder" value="random" checked>
+</div>
+                        <hr style="border: 1px solid #333; margin: 15px 0;">
+                        <div class="modal-option">
+                            <label for="sortByTitle">按名称排序</label>
+                            <input type="radio" id="sortByTitle" name="sortType" value="title" checked>
+                        </div>
+                        <div class="modal-option">
+                            <label for="sortByArtist">按歌手排序</label>
+                            <input type="radio" id="sortByArtist" name="sortType" value="artist">
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-btn btn-cancel" id="cancelBtn">取消</button>
+                            <button class="modal-btn btn-confirm" id="confirmBtn">确定</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="song-list-wrapper">
+                <div class="song-list-content" id="songListContainer"></div>
+            </div>
+        </div>
+
+        <div class="collect-page" id="collectPage">
+            <h3 id="collectTitle">我的收藏</h3>
+            <p id="collectEmpty">暂无收藏歌曲</p>
+        </div>
+
+        <div class="setting-page" id="settingPage">
+            <div class="setting-sidebar">
+                <div class="setting-sidebar-btn active" data-target="lang-content">语言</div>
+                <div class="setting-sidebar-btn" data-target="bg-content">背景</div>
+                <div class="setting-sidebar-btn" data-target="software-content">软件</div>
+            </div>
+
+            <div class="setting-content active" id="lang-content">
+                <div class="setting-group">
+                    <h3 id="langTitle">语言设置</h3>
+                    <div class="setting-item">
+                        <label for="languageSelect">选择语言</label>
+                        <select id="languageSelect">
+                            <option value="zh">中文</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-content" id="bg-content">
+                <div class="setting-group">
+                    <h3 id="bgTitle">背景设置</h3>
+                    <div class="setting-item">
+                        <label for="bgFileInput">选择本地背景图片</label>
+                        <input type="file" id="bgFileInput" accept="image/*">
+                    </div>
+                    <div class="setting-item">
+                        <label for="bgOpacity">背景透明度</label>
+                        <input type="range" id="bgOpacity" min="0.1" max="1" step="0.1" value="0.5">
+                        <span id="opacityValue">100%</span>
+                    </div>
+                    <div class="setting-item">
+                        <label id="bgColorLabel">选择纯色背景</label>
+                        <div class="color-selector">
+                            <div class="color-block" style="background-color: #000000;" data-color="#000000"></div>
+                            <div class="color-block" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+                            <div class="color-block" style="background-color: #8B0000;" data-color="#8B0000"></div>
+                            <div class="color-block" style="background-color: #008000;" data-color="#008000"></div>
+                            <div class="color-block" style="background-color: #FFA500;" data-color="#FFA500"></div>
+                            <div class="color-block" style="background-color: #FFFF00;" data-color="#FFFF00"></div>
+                            <div class="color-block" style="background-color: #800080;" data-color="#800080"></div>
+                            <div class="color-block" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-content" id="software-content">
+                <div class="software-info">
+                    <p>软件版本：V2.2</p>
+                    <p>作者：汤晨</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab-item active" id="homeTab">
+            <i class="fas fa-home tab-icon"></i>
+            <span id="homeText">首页</span>
+        </div>
+        <div class="tab-item" id="collectTab">
+            <i class="fas fa-star tab-icon"></i>
+            <span id="collectText">收藏</span>
+        </div>
+        <div class="tab-item" id="settingTab">
+            <i class="fas fa-cog tab-icon"></i>
+            <span id="settingText">设置</span>
+        </div>
+    </div>
+
+    <script>
+        // ====================== 歌单配置 ======================
+        const songLists = {
+            judy: `
+阿刁
+爱
+爱上一个不回家的人
+爱不爱我
+爱人跟人走（台）
+爱拼才会赢（台）
+爱之初体验
+爱什么稀罕
+爱你A.I.N.Y
+爱你在心口难开
+爱囚
+爱如潮水
+爱很简单
+爱的箴言
+爱要坦荡荡
+爱要怎么说出口
+爱要有你才完美
+爱情的骗子我问你（台）
+爱我的人和我爱的人
+爱的供养
+爱一个人好难
+爱我别走
+爱的主打歌
+安妮
+暗香
+Bad Boy
+不管有多苦
+不再犹豫（粤）
+不在乎他
+不让我的眼泪陪我过夜
+不必太在意
+不值得
+别在伤口撒盐
+北京一夜
+北方的狼
+白天不懂夜的黑
+把耳朵叫醒
+宝贝对不起
+存在
+偿还
+传奇
+丑八怪
+成都
+城里的月光
+晨间新闻
+赤伶
+趁早
+出卖
+错位时空
+但愿人长久
+大约在冬季
+多幸运
+丹顶鹤的故事
+倒数
+冬天里的一把火
+单身情歌
+大海
+大鱼
+大风吹
+对你爱不完
+带我到山顶
+当
+当我开始偷偷的想你
+当爱在靠近
+滴答滴
+电台情歌
+短发
+胆小鬼
+放开
+风吹麦浪
+风流女生
+风的季节（粤）
+凡人歌
+光年之外
+光辉岁月（粤）
+关键词
+干杯.朋友
+刚好遇见你
+感恩的心
+告白气球
+改变自己
+给我一个吻
+跟着感觉走
+花心
+何日君再来
+过火
+过客
+海阔天空（粤）
+后来
+嗨歌
+挥着翅膀的女孩
+回家
+好胆你就来
+火
+红玫瑰
+红豆
+红颜
+剪爱
+加速度
+姐妹
+姐姐妹妹站起来
+寂寞先生
+就现在
+江南
+解脱
+讲真的
+酒干倘卖无
+记事本
+空心
+空空如也
+可惜不是你
+可惜没如果
+哭不出来
+开门见山
+快乐的人请举手
+两个人的回忆一个人过
+李白
+来自天堂的魔鬼
+离不开你
+离歌
+离人愁
+兰花草
+蓝天
+领悟
+龙卷风
+龙的传人
+绿岛小夜曲
+老鼠爱大米
+梦一场
+梦醒了
+梦醒时分
+没离开过
+没那么简单
+闷
+魔鬼中的天使
+默
+梅花三弄
+漫步人生路（粤）
+眉飞色舞
+明天你是否依然爱我
+明天会更好
+南屏晚钟
+你的眼睛像星星
+你一定要幸福
+你不是真正的快乐
+你怎么舍得我难得
+你把我灌醉
+你的眼神
+你的酒馆对我打了佯
+你知道我在等你吗
+你还要我怎样
+你怎么说
+恼人的秋风
+女儿情
+女人花
+男孩
+朋友（周华健）
+泡沫
+漂洋过海来看你
+飘雪（粤）
+情非得已
+前门情思大碗茶
+囚鸟
+千千阙歌（粤）
+千年之恋
+起风了
+敲敲我的头
+千年等一回
+情网
+青苹果乐园
+青藏高原
+千言万语
+牵丝戏
+亲密爱人
+如愿
+如果云知道
+如果没有你
+让我欢喜让我忧
+让我一次爱个够
+super star
+水中花
+三天三夜
+失恋阵线联盟
+十年
+伤痕
+少年
+说唱脸谱
+说散就散
+身骑白马
+他一定很爱你
+特别的爱给特别的你
+体面
+同桌的你
+听海
+天涯歌女
+天路
+太委屈
+太阳
+跳进来
+桃花诺
+桃花朵朵开
+问
+无人之岛
+无地自容
+我要找到你
+我的好兄弟
+我和草原有个约定
+我要你
+我是一只小小鸟
+我最亲爱的
+我的未来不是梦
+我想有个家
+我可以抱你吗
+我只在乎你
+为你我受冷风吹
+为爱痴狂
+味道
+往事随风
+外婆的澎湖湾
+外面的世界
+往后余生
+忘记拥抱
+忘了没有
+忘情水
+悟空
+我在人民广场吃炸鸡
+我好想你
+我怀念的
+我是不是你最疼爱的人
+我曾用心的爱着你
+我的心里只有你没有他
+我的歌声里
+我的秘密
+我相信
+我等到花儿也谢了
+吻别
+新贵妃醉酒
+信仰
+像鱼
+喜欢你（粤）
+小情歌
+想你的夜
+想着你的感觉
+新不了情
+相见恨晚
+辛德瑞拉
+星语心愿
+陷阱
+潇洒走一回
+谢谢你的爱
+小城故事
+香水有毒
+下个，路口，见
+一个人的精彩
+一生何求（粤）
+一人有一个梦想（粤）
+一个人跳舞
+一想到你呀
+一生所爱（粤）
+一样的月光
+一无所有
+一支小雨伞（台）
+友谊之光（粤）
+勇气
+原来你什么都不想要
+愿赌服输
+因为爱所以爱
+夜夜夜
+夜来香
+夜上海
+易燃易爆炸
+映山红
+云与海
+月亮代表我的心
+月半小夜曲（粤）
+月牙湾
+月亮之上
+隐形的翅膀
+有多少爱可以重来
+用心良苦
+远走高飞
+遇见
+野子
+野百合也有春天
+野花
+雨花石
+雨蝶
+愿得一人心
+值得
+再见
+再回首
+再见只是陌生人
+张三的歌
+怎么说我不爱你
+执着
+最浪漫的事
+最熟悉的陌生人
+最美
+最美的期待
+最炫民族风
+自由飞翔
+真情人
+至少还有你
+走着走着就散了
+走马
+追梦人
+掌声响起
+只有你过得比我好
+爱是你我
+美丽的神话
+广岛之恋
+今天你要嫁给我
+铁血丹心
+世间始终你好
+天下有情人
+想把我唱给你听
+刀马旦
+相思风雨中
+因为爱情
+制造浪漫
+知心爱人
+有一点动心
+明明白白我的心
+你莫走
+Can't take my eyes off you
+Careless whisper
+Close to you
+Cheap thrills
+Dance monkey
+Diamonds
+Don't know why
+Dream a little dream
+Dum tek tek
+Eternal flame
+Fly me to the moon
+Give one reason
+God is a girl
+Hero
+Honey
+Honey,i'm home
+Hotel california
+How do i live
+I kissed a girl
+I will always love you
+I hate myself for loving you
+Knocking on heaven's door
+Killing me softly
+Loving you
+La isla bonida
+Man i feel like woman
+My heart will go on
+Price tag
+Rolling in the deep
+Sha la la
+Sunrise
+Superstar
+Smooth operator
+This masquerade
+Try
+The power of love
+Unbreak my heart
+Underneath your clothes
+Venus
+What's up
+Whataya want from me
+Without you
+You're still the one
+Yesterday once more
+`,
+            ting: `
+1.	乌兰巴巴托的夜 
+	2.	旅行
+	3.	阳光彩虹小白马
+	4.	把悲伤留给自己
+	5.	生而为人
+	6.	男孩
+	7.	时间煮雨
+	8.	岁月神偷
+	9.	趁你还年轻
+	10.	爱
+	11.	花心
+	12.	有多少爱可以重来
+	13.	好久不见
+	14.	像鱼
+	15.	红玫瑰
+	16.	魔鬼中的天使
+	17.	不要怕
+	18.	羞答答的玫瑰静悄悄的开
+	19.	这世界那么多人
+	20.	说散就散
+	21.	后来
+	22.	亲爱的小孩
+	23.	你就不要想起我
+	24.	我的声音
+	25.	姐姐妹妹站起来
+	26.	像我这样的人
+	27.	易燃易爆炸
+	28.	我管你
+	29.	那些花儿
+	30.	没那么简单
+	31.	我好像在哪见过
+	32.	我们的爱
+	33.	可惜不是你
+	34.	A hundred miles
+	35.	爱丫爱丫
+	36.	不该用情
+	37.	演员
+	38.	胡广生
+	39.	斑马斑马
+	40.	我很快乐
+	41.	到不了
+	42.	刚刚好
+	43.	我等到花儿也谢了
+	44.	七月上
+	45.	其实都没有
+	46.	红豆 
+	47.	你要跳舞吗
+	48.	第一次爱的人
+	49.	空心
+	50.	奇迹再现 
+	51.	不醉不会
+	52.	带我到山顶
+	53.	给我一个理由忘记 
+	54.	我们的时光
+	55.	雨蝶
+	56.	睫毛弯弯
+	57.	说散就散
+	58.	我很快乐
+	59.	失恋阵线联盟
+	60.	别错过
+	61.	走过咖啡屋
+	62.	谁
+	63.	Lydia 
+	64.	恭喜发财
+	65.	伤心的人别听慢歌
+	66.	隐形的翅膀
+	67.	至少还有你
+	68.	暖暖
+	69.	追光者
+	70.	爱人错过
+	71.	相爱后动物感伤
+	72.	爱的初体验
+	73.	如果你也听说
+	74.	离开地球表面
+	75.	哈哈哈 
+	76.	桃花诺
+	77.	推开世界的门
+	78.	日不落
+	79.	百年孤寂
+	80.	看月亮爬上来
+	81.	刚刚好
+	82.	感官先生
+	83.	头发乱了
+	84.	咕叽咕叽
+	85.	逆光
+	86.	风的季节
+	87.	饿狼传说
+	88.	晚婚
+	89.	执迷不悔
+	90.	处处吻E
+	91.	离别开出花
+	92.	好胆你就来
+	93.	为你唱首歌
+	94.	再见琳尼多了
+	95.	表白
+	96.	爱笑的眼睛
+	97.	欧若拉
+	98.	在加纳共和国离婚
+	99.	潇洒小姐
+	100.	字字句句
+	101.	若是月亮还没来
+	102.	恋爱ing
+	103.	阳光宅男
+	104.	作曲家
+	105.	我要夏天
+	106.	你的微笑
+	107.	不想长大
+`,
+            bao: `
+我真的需要A
+没有理想的人不伤心bE
+都选C  B
+每条伤心的大街bE
+西湖bB
+三跺脚C
+玫瑰F
+海鸥C
+带我去找夜生活#C
+程艾影bA
+推开世界的门b-#C
+寻找多莉D
+最好的安排C
+日落大道#C-D
+爱河zazasu  A
+晚风 椿 A
+公路之歌#F
+理想三旬B
+再见琳妮尔A133
+现在现在A
+十万嬉皮bB
+米店E
+水手公园bE
+霓虹甜心#C
+北京北京F
+仙儿#C
+嘿 姑娘C
+随心所欲F
+你要跳舞吗D
+烂泥E
+假行僧D
+黑白色D
+觉醒#F
+野人F
+爱人错过#C
+爱的初体验C130
+ 小行迹A-bB
+Don't break my heart  C
+杀死那个石家庄人D
+Dancing girl  bE
+花火#F
+一万次悲伤#C
+一起摇摆G128
+爱不爱我C-D
+同桌的你bE
+河流 蛙池G
+艾蜜莉C
+在哪里D
+男孩#C
+无地自容F
+别再问我什么是迪斯科C
+I hate myself for loving you G125
+放学啦E
+新长征路上的摇滚E
+我希望在你的爱情里
+不会改变
+把夜晚染黑#F
+手扶拖拉机斯基F
+危险A
+所有人都在玩手机B128
+猛犸bB
+向阳花bB
+相爱A125
+欢乐颂bB
+路灯下的小姑娘G
+爱着谁C
+Dear John D
+安妮E
+夜机F
+我的未来不是梦C
+梦醒十分F
+如愿#F
+Love story#C
+爱就一个字C
+Can’t take my eyes off you F
+爱如潮水#C
+过火#C
+男孩别哭bB
+红色高跟鞋👠D
+鼓楼#C
+我是一只小小鸟G
+在雨中#F
+怒放的生命bE
+海阔天空F
+我的新衣E
+至少还有你D
+牧马人D
+温柔bB
+Dance monkey #F
+爱我别走bE
+日不落C
+催眠E
+再见bB
+我还年轻 我还年轻#F
+酒醉的探戈E
+有多少爱可以重来C
+夕阳醉了bB
+乱世巨星#C
+那些你很冒险的梦D
+偏爱A
+恋曲1990 A
+背叛情歌bB
+恰似你的温柔G
+你的眼神E
+解脱C
+别再伤口撒盐#C
+爱上一个不回家的人B
+干杯朋友C
+心太软A
+勇气bE
+分手快乐D
+问C
+外面的世界A
+不让我的眼泪陪我过夜C
+三万英尺A
+忽然之间B
+电台情歌#C
+我怀念的C
+我只在乎你D
+再回首G
+让我欢喜让我忧D
+没那么简单E
+好男人#F
+凡人歌A
+饿狼传说#F
+难以抗拒你容颜bE
+用情A
+月牙泉F
+我是真的爱你D
+水中花A
+后来D
+十年bB
+被动bE
+Last dance  B
+大海bB
+口是心非D
+小情歌C
+星晴A
+一路向北F
+冷雨夜C
+简单爱D
+想太多C
+特别的爱给特别的你G
+爱江山更爱美人bB
+God is a girl D
+Cheap thrills A
+红日 C
+Colorful world  bE
+泪桥A
+离别开出花A
+海芋恋E-#F
+逆战#F
+你的微笑E-#C
+热铁皮房顶的夏天D
+听海G
+爱江山更爱美人bB
+爱错B
+残酷月光B
+红旗飘飘E
+风雨彩虹铿锵玫瑰bE
+三天三夜bE
+女人花
+泪海
+太聪明
+最爱
+心会跟爱一起走
+流星雨
+做我老婆好不好
+我们的明天
+你不是真正的快乐
+单身旅记
+我们能不能不分手
+归来
+你的爱情
+没有理想的人不伤心
+生活因你而火热
+所有知道我名字的人
+虎口脱险
+水手公园
+秦皇岛
+别来纠缠我
+酒干倘卖无
+闹海
+我要让你心碎
+假行僧
+穷开心
+勇敢的心
+敕勒川
+加德满都的风铃
+梦特别娇
+猛犸
+那些花儿
+路边的野花不要采
+我的好兄弟
+等下一个天亮
+向云端
+妈妈的话
+初恋
+Lydia
+马
+心动
+他一定很爱你
+花田错
+寂寞沙洲冷
+因为爱所以爱
+好男人
+浴室
+新鲜
+中意他
+短发
+Melody
+普通朋友
+爱我还是他
+我是真的爱你
+漂洋过海来看你
+思念是一种病
+像雾像雨又像风
+听说爱情回来过
+为你我受冷风吹
+诱惑的街
+生如夏花
+雨蝶
+年少有为
+热爱105度的你
+痴心绝对
+一次就好
+你到底爱谁
+比我幸福
+假如
+月亮可以代表我的心
+我真的受伤了
+心如刀割
+一路上有你
+一千个伤心的理由
+吻别
+每天爱你多一些
+风往北吹
+找个好人就嫁了吧
+等一分钟
+难念的经
+初恋情人
+有你的快乐
+童话镇
+爱转角
+孤单芭蕾
+类似爱情
+难得有情人
+空空如也
+我知道你很难过
+爱似水仙
+单身情歌
+难以抗拒你容颜
+宽容
+忘情忘爱
+太想爱你
+信仰
+决爱
+一个人生活
+月半弯
+最美的太阳
+泡沫
+光年之外
+演员
+认真的雪
+天外来物
+像风一样
+还是要幸福
+刻在我心底的名字
+你就不要想起我
+魔鬼中的天使
+寂寞寂寞就好
+乱了
+爱笑的眼睛
+勇敢
+原来你什么都不想要
+哭砂
+剪爱
+我最亲爱的
+执着
+怕黑的女人
+寓言
+遗失的美好
+如果的事
+欧若拉
+天黑黑
+雨天
+绿光
+开始懂了
+最初的梦想
+记事本
+曾经心痛
+我的爱对你说
+爱的可能
+潇洒走一回
+心在跳
+谁不是
+小摩托
+路过人间
+一生中最爱
+袖手旁观
+风吹麦浪
+传奇
+回头太难
+单恋一枝花
+一言难尽
+用心良苦
+雨一直下
+月亮惹的祸
+趁早
+爱情转移
+十年
+我还想她
+连名带姓
+可惜没如果
+在你的身边
+亲爱的 那不是爱情
+长腿叔叔
+阿拉斯加海湾
+原谅
+姐姐妹妹站起来
+太委屈
+相见不如怀念
+我不是天使
+心酸的浪漫
+出卖
+一笑而过
+无人知晓的我
+失恋无罪
+给我一个理由忘记
+天若有情
+无条件为你
+崇拜
+爱久见人心
+可惜不是你
+会呼吸的痛
+情歌
+年轮说
+暧昧
+左边
+加速度
+带我走
+雨爱
+作曲家
+太阳
+如果有来生
+丝路
+亲爱的你怎么不在我身边
+怎么了
+疲惫的爱
+爱你不是两三天
+亲密爱人
+一生爱你千百回
+突然的自我
+被动
+Last Dance
+白鸽
+浪人情歌
+挪威的森林
+第一次爱的人
+童话
+征服
+天天
+百万个吻
+洋葱
+猜不透
+祝我生日快乐
+傻瓜
+你是我的风景
+生日快乐歌
+如果这就是爱情
+小情歌
+我好想你
+忘了你 忘了我
+月亮代表我的心
+空城
+这就是爱
+月亮偷着哭
+如果下辈子我还记得你
+我的爱
+原来你什么都不想要
+掉了
+坏天气
+尚好的青春
+当冬夜渐暖
+不是真的爱我
+逆光
+发如雪
+遇见
+开不了口
+给我一首歌的时间
+晴天
+不再犹豫
+冷雨夜
+算了
+美人鱼
+Can you feel my world
+依然爱你
+我的眼里只有你
+爱的就是你
+唯一
+需要人陪
+大城小爱
+心中的日月
+你不知道的事
+不值得
+她说
+记得
+我可以抱你吗
+风继续吹
+敢爱敢做
+Bad boy
+天涯
+你把我灌醉
+爱要坦荡荡
+城里的月光
+新不了情
+女人的选择
+其实都没有
+爱你一万年
+笨小孩
+冰雨
+阳光宅男
+达尔文
+夏天的风
+阳光下的星星
+都是夜归人
+世界末日
+一路向北
+空空
+执迷不悔
+但愿人长久
+无情的雨无情的你
+下个路口见
+其实你不懂我的心
+爱情
+原来你也在这里
+倒带
+撕夜
+值得
+很爱很爱你
+光阴的故事
+不要对他说
+爱
+这是我一生中最勇敢的瞬间
+其实不想走
+爱相随
+爱不后悔
+大女人
+我是一只鱼
+春天花会开
+跟着感觉走
+夏天的浪花
+给我感觉
+天高地厚
+牧马人
+特别的人
+没那种命
+枫
+轨迹
+ 不能说的秘密
+野花
+往事随风
+悬崖
+旋木
+红豆
+我也不想这样
+一生所爱
+老地方
+大约在冬季
+花心
+风雨无阻
+让我欢喜让我忧
+盛夏的果实
+阴天
+放手去爱
+外面的世界
+词不达意
+牵手
+一想到你呀
+姐妹
+ 别在伤口撒盐
+你的眼神
+最后一滴泪
+背叛情歌
+相爱后动物感伤
+那么骄傲
+恼人的秋风
+白天不懂夜的黑
+爱的代价
+万水千山总是情
+你看你看月亮的脸
+冬季到台北来看雨
+让我取暖
+失踪
+星星堆满天
+匿名的好友
+水手
+野百合也有春天
+`,
+            zhiyu: `
+像梦一样自由    汪峰
+夕阳醉了		张学友
+童话		       光良
+不再犹豫		Beyond 
+护花使者		李克勤
+浮夸		       陈奕迅
+十年		       陈奕迅
+只是太爱你		张敬轩
+淘汰		       陈奕迅
+花心		       周华健
+兄弟 		       任贤齐
+在他乡		      水木年华
+爱我的人和我爱的人		游鸿明
+暗里着迷		刘德华
+今天		       刘德华
+挪威的森林		伍佰
+再回首		       姜育恒
+偷心		       张学友
+好想好想		古巨基
+我是愤怒		Beyond 
+从头再来		崔健
+Monica		       古巨基
+再度重相逢		伍佰
+风往北吹		孙楠
+遥远的她		张学友
+乱世巨星		陈小春
+红日		       李克勤
+改变自己		王力宏
+讲不出再见		谭咏麟
+小小的太阳		张宇
+凡人歌		       李宗盛
+难念的经		周华健
+谢谢你的爱		刘德华
+一生所爱		李克勤
+一生中最爱		谭咏麟
+一生不变		李克勤
+独家记忆		陈小春
+背叛		       曹格
+忘了你忘了我		王杰
+平凡之路		朴树
+别让我一个醉		姜育恒
+一起走过的日子		刘德华
+富士山下		陈奕迅
+你怎么舍得我难过		黄品源
+安妮		王杰
+不将就		李荣浩
+十七岁		刘德华
+忘记你我做不到		张学友
+风往北吹		       孙楠
+如果这都不算爱		张学友
+普通朋友		陶喆
+爱不爱我		零点乐队
+那就这样吧		动力火车
+南方姑娘		赵雷
+暗香		       沙宝亮
+突然好想你		五月天
+回头太难		张学友
+爱很简单		陶喆
+朋友别哭		吕方
+海阔天空		Beyond 
+光辉岁月		Beyond 
+痴心绝对		李圣杰
+一生有你		水木年华
+有多少爱可以重来		迪克牛仔
+七里香		周杰伦
+单身情歌		              林志炫
+我这个你不爱的人		迪克牛仔
+当你孤单你会想起谁		张栋梁
+原来的我		齐秦
+一路上有你		张学友
+男孩		       梁博
+需要人陪		王力宏
+像我这样的人		毛不易
+真的爱你		Beyond 
+给你们		        张宇
+爱你一万年		刘德华
+女人的选择		姜育恒
+别让我一个人醉		姜育恒
+我们的歌		王力宏
+贝加尔湖畔		李健
+活着		       郝云
+小镇姑娘		陶喆
+今夜你会不会来		黎明
+我是真的爱上你		王杰
+让一切随风		钟镇涛
+朋友		       周华健
+心跳		       王力宏
+情非得已		庾澄庆
+一场游戏一场梦		王杰
+一千个伤心的理由		张学友
+模特		李荣浩
+如果没有你		萧敬腾
+成都		赵雷
+甘心替代你		郑伊健
+千千阙歌		陈慧娴
+雨一直下		张宇
+当年情		张国荣
+冰雨		刘德华
+吻别		张学友
+朋友		谭咏麟
+沉默是金		许冠杰
+如果你是我的传说		刘德华
+笨小孩		刘德华
+她来听我的演唱会		张学友
+情人		Beyond 
+月半小夜曲		李克勤
+一生何求		陈百强
+偏偏喜欢你		陈百强
+冷雨夜		Beyond 
+无赖		郑中基
+漫步人生路		邓丽君
+用心良苦		张宇
+突然的自我		伍佰
+传奇		李健
+那些你冒险的梦		林俊杰
+你是我心爱的姑娘		汪峰
+怒放的生命		汪峰
+你就不要想起我		简弘亦
+蓝莲花		许巍
+曾经的你		许巍
+龙卷风		周杰伦
+简单爱		周杰伦
+春风十里		鹿先生乐队
+男孩别哭		海龟先生
+下一个天亮		半吨兄弟
+明天你是否依然爱我		童安格
+江南		林俊杰
+成全		林宥嘉
+恋曲1990		罗大佑
+笑看风云		郑少秋
+嘉宾		张远
+不浪漫罪名		王杰
+梦醒时分		伍佰
+北京北京		汪峰
+友情岁月		陈小春
+你把我灌醉		黄大炜
+我只在乎你		邓丽君
+无所谓		杨坤
+月亮代表我的心		齐秦
+因为爱所以爱		谢霆锋
+这世界那么多人		林志炫
+雨中的恋人们		黄凯芹
+空白格		杨宗伟
+练习		刘德华
+世界第一等		刘德华
+星晴		周杰伦
+我可以抱你吗		张惠妹
+离人		林志炫
+你的样子		林志炫
+第一次		光良
+最远的你是我最近的爱		车继玲
+稳稳的幸福		陈奕迅
+灰色轨迹		Beyond 
+离开以后             张学友
+倩女幽魂             张国荣
+只要你过得比我好   钟镇涛
+`,
+            echo: `
+1 梦醒时分C
+2隆里电丝 (Live)E
+3如果这都不算爱D
+4花海F
+5爱的飞行日记E
+6大城小爱C
+7风继续吹C
+8霍元甲F
+9危险派对E
+10霓虹甜心G
+11 我是真的爱上你E
+12 New Boy (Live)盘尼西林乐队C
+13爱笑的眼睛C
+14 Monica F
+15一生中最爱C#
+16讲不出再见C
+17安妮C
+18夕阳醉了Bb
+19凡人歌Eb
+20当年情Eb
+21爱的初体验G
+22天天A转Bb
+23海龟先生Gj
+24初恋 (Live)F#
+25曹操Eb
+26春风十里E
+27离人D
+28十年G
+29鬼迷心窍C
+30晚婚 C
+31问 G
+32出现又离开G
+33男孩C
+34红日C
+35海鸥G
+36爱我还是他A
+37找自己A
+38普通朋友Eb
+39爱很简单C
+40就是爱你G转Ab
+41稻香A
+42告白气球Ab
+43简单爱Bb
+44一路向北C
+45明明就F
+46记得Eb
+47好想好想E
+
+49水中花D
+50恋曲1990D
+51成都D
+52味道D
+53有没有人告诉你G
+54不浪漫罪名E
+55天下D
+56谢谢你的爱1999E
+57戒烟G
+58作曲家G
+59水星记E
+60可乐Eb
+61阳光宅男C#
+62你的背包E
+63特别的人G
+64我们俩G
+65暗里着迷C
+66莉莉安G
+67我可以F#
+68你要的爱 B
+69刻在我心底的名字A#
+70小城夏天LBI利比G
+71修炼爱情C
+72风再起时A
+73鼓楼 G
+74我们的时光 F
+75过火Bb
+76那些花儿G
+77一生所爱E
+78年少有为A
+79寂寞难耐 G
+80程艾影D
+81南方姑娘F
+82三十岁的女人D
+83阿刁赵雷 F
+84朵儿F
+85风吹一夏 龙猪Ab
+86有多少爱可以重来Ab
+87山丘李宗盛Eb
+88凄美地G
+89再见杰克F
+90爱要怎么说出口A
+91一场游戏一场梦A
+92夜夜夜夜G
+93那就这样吧D
+94流沙G
+95爱我别走C
+96月半小夜曲Ab
+97小镇姑娘Bb
+98给自己的歌Bb
+99新不了情C
+100搁浅D转Eb
+101鲜花  回春丹乐队 D
+102私奔郑钧F#
+103需要人陪F
+104失恋阵线联盟F
+107康姆士乐团 你要如何，我们就如何A
+108怎么说我不爱你C
+109偏偏喜欢你G
+110Melody陶喆 D
+111悬崖C
+112爱不爱我G
+113玫瑰C
+114梦一场G
+115寂寞先生G
+116不让我的眼泪陪我过夜A
+117袖手旁观B
+118阿飞的小蝴蝶G
+119无情的雨，无情的你D
+120画赵雷G
+121安妮王杰C
+122南山南马頔 B
+123嘿!姑娘反光镜乐队G
+124理想G
+125小宇A
+126一滴泪的时间
+127理想三旬Bb
+128一滴泪的时间C
+129突然好想你C
+130温柔G
+131春风十里E
+`
+        };
+
+        // 转换歌单格式
+        function convertSongList(text, artistName) {
+            return text.split('\n')
+                .filter(title => title.trim())
+                .map((title, index) => ({
+                    id: index + 1,
+                    title: title.trim(),
+                    artist: artistName,
+                    cover: title.trim().charAt(0)
+                }));
+        }
+
+        // 构建音乐数据
+        const musicData = {
+            judy: convertSongList(songLists.judy, '女歌 Judy'),
+            ting: convertSongList(songLists.ting, '女歌 小婷'),
+            bao: convertSongList(songLists.bao, '女歌 BAOBAO'),
+            zhiyu: convertSongList(songLists.zhiyu, '男歌 致宇'),
+            echo: convertSongList(songLists.echo, '男歌 Echo')
+        };
+
+        // 合并所有歌单
+        musicData.all = [].concat(
+            musicData.judy,
+            musicData.ting,
+            musicData.bao,
+            musicData.zhiyu,
+            musicData.echo
+        );
+
+        // 页面元素
+        const bgContainer = document.getElementById('bgContainer');
+        const homePage = document.getElementById('homePage');
+        const collectPage = document.getElementById('collectPage');
+        const settingPage = document.getElementById('settingPage');
+        const homeTab = document.getElementById('homeTab');
+        const collectTab = document.getElementById('collectTab');
+        const settingTab = document.getElementById('settingTab');
+        const tagContainer = document.getElementById('tagContainer');
+        const searchInput = document.getElementById('searchInput');
+        const songListContainer = document.getElementById('songListContainer');
+        const countText = document.getElementById('countText');
+        const layoutTrigger = document.getElementById('layoutTrigger');
+        const layoutModal = document.getElementById('layoutModal');
+        const layoutSingle = document.getElementById('layoutSingle');
+        const layoutDouble = document.getElementById('layoutDouble');
+        const layoutTriple = document.getElementById('layoutTriple');
+        const layoutCancelBtn = document.getElementById('layoutCancelBtn');
+        const layoutConfirmBtn = document.getElementById('layoutConfirmBtn');
+        const sortTrigger = document.getElementById('sortTrigger');
+        const sortModal = document.getElementById('sortModal');
+        const orderAsc = document.getElementById('orderAsc');
+        const orderDesc = document.getElementById('orderDesc');
+        const orderRandom = document.getElementById('orderRandom');
+        const sortByTitle = document.getElementById('sortByTitle');
+        const sortByArtist = document.getElementById('sortByArtist');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const languageSelect = document.getElementById('languageSelect');
+        const bgFileInput = document.getElementById('bgFileInput');
+        const bgOpacity = document.getElementById('bgOpacity');
+        const opacityValue = document.getElementById('opacityValue');
+        const collectEmpty = document.getElementById('collectEmpty');
+        const collectTip = document.getElementById('collectTip');
+
+        // 状态管理 - 核心修改：默认正序(A-Z)
+        let currentSongs = musicData.all;
+        let originalSongs = [...currentSongs];
+        let previousState = { order: 'random', type: 'title' }; // 改为asc正序，按歌名
+        let previousLayout = 'single'; // 默认单排
+        let collectSongs = [];
+        // 初始渲染为歌名正序（替换原来的随机排序）
+        let randomSortedSongs = [...currentSongs].sort((a, b) => a.title.localeCompare(b.title));
+        let currentBgType = 'color';
+        let currentColor = '#8B0000';
+
+        // 临时状态（用于布局/排序预览）
+        let tempLayout = previousLayout;
+        let tempSortState = { ...previousState };
+        let tempSortedSongs = [...randomSortedSongs];
+
+        // 语言包
+        const langPkg = {
+            zh: {
+                title: "情義江湖点歌系统", homeText: "首页", collectText: "收藏", settingText: "设置",
+                allTag: "歌单大全", searchPlaceholder: "搜索歌曲", listTitle: "歌曲列表",
+                layoutText: "布局", sortText: "排序", layoutModalTitle: "布局设置",
+                singleLabel: "单排显示", doubleLabel: "双排显示", tripleLabel: "三排显示",
+                sortModalTitle: "排序设置", ascLabel: "正序 (A-Z)", descLabel: "倒序 (Z-A)",
+                randomLabel: "随机排序", sortTitleLabel: "按名称排序", sortArtistLabel: "按歌手排序",
+                cancelBtn: "取消", confirmBtn: "确定", collectTitle: "我的收藏", collectEmpty: "暂无收藏歌曲",
+                noSongTip: "无匹配歌曲", langTitle: "语言设置", langLabel: "选择语言",
+                bgTitle: "背景设置", bgImgLabel: "选择本地背景图片", opacityLabel: "背景透明度",
+                bgColorLabel: "选择纯色背景"
+            },
+            en: {
+                title: "Qingyi Jianghu Song System", homeText: "Home", collectText: "Collect", settingText: "Settings",
+                allTag: "All Songs", searchPlaceholder: "Search Songs", listTitle: "Song List",
+                layoutText: "Layout", sortText: "Sort", layoutModalTitle: "Layout Settings",
+                singleLabel: "Single Column", doubleLabel: "Double Columns", tripleLabel: "Triple Columns",
+                sortModalTitle: "Sort Settings", ascLabel: "Ascending (A-Z)", descLabel: "Descending (Z-A)",
+                randomLabel: "Random Sort", sortTitleLabel: "Sort by Name", sortArtistLabel: "Sort by Artist",
+                cancelBtn: "Cancel", confirmBtn: "Confirm", collectTitle: "My Collection", collectEmpty: "No collected songs",
+                noSongTip: "No matching songs", langTitle: "Language Settings", langLabel: "Select Language",
+                bgTitle: "Background Settings", bgImgLabel: "Select Local Background Image", opacityLabel: "Background Opacity",
+                bgColorLabel: "Select Solid Background Color"
+            }
+        };
+
+        // 初始化页面
+        function initPage() {
+            renderSongs(randomSortedSongs);
+            initTabSwitch();
+            initLayoutSwitch();
+            initSortSwitch();
+            initSetting();
+            initTagClick();
+            initSearch();
+            applyLayout(previousLayout); // 初始化布局
+            // 监听窗口大小变化，重新适配布局
+            window.addEventListener('resize', () => applyLayout(previousLayout));
+        }
+
+        // 渲染歌曲列表
+        function renderSongs(songs) {
+            if (songs.length === 0) {
+                songListContainer.innerHTML = `<div class="no-song-tip">${langPkg[languageSelect.value].noSongTip}</div>`;
+                countText.textContent = `(0首)`;
+                return;
+            }
+            
+            songListContainer.innerHTML = songs.map(song => {
+                const isCollected = collectSongs.some(s => s.id === song.id);
+                return `
+                    <div class="song-item ${isCollected ? 'collect-active' : ''}" data-id="${song.id}">
+                        <div class="thumbnail"><div class="placeholder-img">${song.cover}</div></div>
+                        <div class="song-details">
+                            <div class="song-title">${song.title}</div>
+                            <div class="song-artist">${song.artist}</div>
+                        </div>
+                        <i class="fas fa-star collect-star ${isCollected ? 'active' : ''}" data-id="${song.id}"></i>
+                    </div>
+                `;
+            }).join('');
+            
+            // 绑定收藏事件
+            document.querySelectorAll('.collect-star').forEach(star => {
+                star.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const songId = parseInt(this.dataset.id);
+                    const songItem = document.querySelector(`.song-item[data-id="${songId}"]`);
+                    const isCollected = this.classList.contains('active');
+                    
+                    if (isCollected) {
+                        removeCollect(songId);
+                        this.classList.remove('active');
+                        songItem.classList.remove('collect-active');
+                        showTip('取消收藏成功');
+                    } else {
+                        addCollect(songId);
+                        this.classList.add('active');
+                        songItem.classList.add('collect-active');
+                        showTip('收藏歌曲成功');
+                    }
+                    updateCollectPage();
+                });
+            });
+            
+            countText.textContent = `(${songs.length}首)`;
+        }
+
+        // 显示提示
+        function showTip(text) {
+            collectTip.textContent = text;
+            collectTip.classList.add('show');
+            setTimeout(() => collectTip.classList.remove('show'), 1500);
+        }
+
+        // 添加收藏
+        function addCollect(songId) {
+            if (!collectSongs.some(s => s.id === songId)) {
+                const song = currentSongs.find(s => s.id === songId);
+                collectSongs.push(song);
+                updateCollectPage();
+            }
+        }
+
+        // 移除收藏
+        function removeCollect(songId) {
+            collectSongs = collectSongs.filter(s => s.id !== songId);
+            updateCollectPage();
+        }
+
+        // 更新收藏页面
+        function updateCollectPage() {
+            if (collectSongs.length === 0) {
+                collectPage.innerHTML = `<h3 id="collectTitle">${langPkg[languageSelect.value].collectTitle}</h3><p id="collectEmpty">${langPkg[languageSelect.value].collectEmpty}</p>`;
+            } else {
+                const html = collectSongs.map(song => {
+                    const isCollected = collectSongs.some(s => s.id === song.id);
+                    return `
+                        <div class="song-item ${isCollected ? 'collect-active' : ''}" data-id="${song.id}">
+                            <div class="thumbnail"><div class="placeholder-img">${song.cover}</div></div>
+                            <div class="song-details">
+                                <div class="song-title">${song.title}</div>
+                                <div class="song-artist">${song.artist}</div>
+                            </div>
+                            <i class="fas fa-star collect-star ${isCollected ? 'active' : ''}" data-id="${song.id}"></i>
+                        </div>
+                    `;
+                }).join('');
+                collectPage.innerHTML = `<h3 id="collectTitle">${langPkg[languageSelect.value].collectTitle}</h3><div class="song-list-content">${html}</div>`;
+            }
+        }
+
+        // 初始化标签切换
+        function initTagClick() {
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const artist = this.dataset.artist;
+                    currentSongs = artist === 'all' ? musicData.all : musicData[artist];
+                    originalSongs = [...currentSongs];
+                    
+                    sortSongs(previousState.type, previousState.order);
+                });
+            });
+        }
+
+        // 初始化搜索功能 - 仅匹配歌曲名
+        function initSearch() {
+            searchInput.addEventListener('input', function() {
+                const keyword = this.value.trim().toLowerCase();
+                if (keyword === '') {
+                    currentSongs = [...originalSongs];
+                } else {
+                    // 仅过滤歌曲名包含关键词的结果
+                    currentSongs = originalSongs.filter(song => 
+                        song.title.toLowerCase().includes(keyword)
+                    );
+                }
+                sortSongs(previousState.type, previousState.order);
+            });
+        }
+
+        // 初始化标签页切换
+        function initTabSwitch() {
+            homeTab.addEventListener('click', function() {
+                setActiveTab(this);
+                homePage.style.display = 'block';
+                collectPage.style.display = 'none';
+                settingPage.style.display = 'none';
+            });
+            
+            collectTab.addEventListener('click', function() {
+                setActiveTab(this);
+                homePage.style.display = 'none';
+                collectPage.style.display = 'flex';
+                settingPage.style.display = 'none';
+                updateCollectPage();
+            });
+            
+            settingTab.addEventListener('click', function() {
+                setActiveTab(this);
+                homePage.style.display = 'none';
+                collectPage.style.display = 'none';
+                settingPage.style.display = 'flex';
+            });
+        }
+
+        // 设置激活的标签
+        function setActiveTab(tab) {
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            tab.classList.add('active');
+        }
+
+        // 初始化布局切换（修复手机端生效问题）
+        function initLayoutSwitch() {
+            let isLayoutModalOpen = false;
+            
+            // 打开布局弹窗
+            layoutTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                isLayoutModalOpen = !isLayoutModalOpen;
+                layoutModal.style.display = isLayoutModalOpen ? 'block' : 'none';
+                sortModal.style.display = 'none';
+                
+                // 初始化临时布局状态
+                tempLayout = previousLayout;
+                // 选中当前布局对应的单选框
+                if (tempLayout === 'single') layoutSingle.checked = true;
+                else if (tempLayout === 'double') layoutDouble.checked = true;
+                else if (tempLayout === 'triple') layoutTriple.checked = true;
+            });
+            
+            // 布局单选框点击：立即预览+强制重绘
+            layoutSingle.addEventListener('change', function() {
+                if (isLayoutModalOpen) {
+                    tempLayout = 'single';
+                    applyLayout(tempLayout); 
+                    // 强制重绘，确保手机端样式生效
+                    songListContainer.style.display = 'none';
+                    setTimeout(() => songListContainer.style.display = 'grid', 0);
+                }
+            });
+            layoutDouble.addEventListener('change', function() {
+                if (isLayoutModalOpen) {
+                    tempLayout = 'double';
+                    applyLayout(tempLayout); 
+                    // 强制重绘
+                    songListContainer.style.display = 'none';
+                    setTimeout(() => songListContainer.style.display = 'grid', 0);
+                }
+            });
+            layoutTriple.addEventListener('change', function() {
+                if (isLayoutModalOpen) {
+                    tempLayout = 'triple';
+                    applyLayout(tempLayout); 
+                    // 强制重绘
+                    songListContainer.style.display = 'none';
+                    setTimeout(() => songListContainer.style.display = 'grid', 0);
+                }
+            });
+            
+            // 取消：还原之前的布局
+            layoutCancelBtn.addEventListener('click', function() {
+                isLayoutModalOpen = false;
+                layoutModal.style.display = 'none';
+                applyLayout(previousLayout); 
+                // 强制重绘还原
+                songListContainer.style.display = 'none';
+                setTimeout(() => songListContainer.style.display = 'grid', 0);
+            });
+            
+            // 确定：保存布局设置
+            layoutConfirmBtn.addEventListener('click', function() {
+                isLayoutModalOpen = false;
+                layoutModal.style.display = 'none';
+                previousLayout = tempLayout; 
+                applyLayout(previousLayout); 
+                // 强制重绘保存
+                songListContainer.style.display = 'none';
+                setTimeout(() => songListContainer.style.display = 'grid', 0);
+            });
+            
+            // 点击空白处关闭弹窗
+            document.addEventListener('click', function() {
+                if (isLayoutModalOpen) {
+                    isLayoutModalOpen = false;
+                    layoutModal.style.display = 'none';
+                    applyLayout(previousLayout); 
+                    // 强制重绘还原
+                    songListContainer.style.display = 'none';
+                    setTimeout(() => songListContainer.style.display = 'grid', 0);
+                }
+            });
+            
+            layoutModal.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+
+        // 应用布局
+        function applyLayout(type) {
+            // 先清空所有布局类名
+            songListContainer.classList.remove('single-col', 'two-col', 'three-col');
+            // 根据类型添加对应的类名
+            if (type === 'single') {
+                songListContainer.classList.add('single-col');
+            } else if (type === 'double') {
+                songListContainer.classList.add('two-col');
+            } else if (type === 'triple') {
+                songListContainer.classList.add('three-col');
+            }
+        }
+
+        // 初始化排序功能
+        function initSortSwitch() {
+            let isSortModalOpen = false;
+            
+            // 打开排序弹窗
+            sortTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                isSortModalOpen = !isSortModalOpen;
+                sortModal.style.display = isSortModalOpen ? 'block' : 'none';
+                layoutModal.style.display = 'none';
+                
+                // 初始化临时排序状态
+                tempSortState = { ...previousState };
+                tempSortedSongs = [...currentSongs];
+                
+                // 默认选中正序(A-Z)和按名称排序
+                if (tempSortState.order === 'asc') orderAsc.checked = true;
+                else if (tempSortState.order === 'desc') orderDesc.checked = true;
+                else orderRandom.checked = true;
+                
+                if (tempSortState.type === 'title') sortByTitle.checked = true;
+                else sortByArtist.checked = true;
+            });
+            
+            // 排序单选框点击：立即预览
+            orderAsc.addEventListener('change', function() {
+                if (isSortModalOpen) {
+                    tempSortState.order = 'asc';
+                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
+                    renderSongs(tempSortedSongs);
+                }
+            });
+            orderDesc.addEventListener('change', function() {
+                if (isSortModalOpen) {
+                    tempSortState.order = 'desc';
+                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
+                    renderSongs(tempSortedSongs);
+                }
+            });
+            orderRandom.addEventListener('change', function() {
+                if (isSortModalOpen) {
+                    tempSortState.order = 'random';
+                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
+                    renderSongs(tempSortedSongs);
+                }
+            });
+            sortByTitle.addEventListener('change', function() {
+                if (isSortModalOpen) {
+                    tempSortState.type = 'title';
+                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
+                    renderSongs(tempSortedSongs);
+                }
+            });
+            sortByArtist.addEventListener('change', function() {
+                if (isSortModalOpen) {
+                    tempSortState.type = 'artist';
+                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
+                    renderSongs(tempSortedSongs);
+                }
+            });
+            
+            // 取消：还原之前的排序
+            cancelBtn.addEventListener('click', function() {
+                isSortModalOpen = false;
+                sortModal.style.display = 'none';
+                sortSongs(previousState.type, previousState.order); // 还原
+            });
+            
+            // 确定：保存排序设置
+            confirmBtn.addEventListener('click', function() {
+                isSortModalOpen = false;
+                sortModal.style.display = 'none';
+                previousState = { ...tempSortState }; // 保存临时状态为正式状态
+                currentSongs = [...tempSortedSongs]; // 更新当前歌曲列表
+            });
+            
+            // 点击空白处关闭弹窗
+            document.addEventListener('click', function() {
+                if (isSortModalOpen) {
+                    isSortModalOpen = false;
+                    sortModal.style.display = 'none';
+                    sortSongs(previousState.type, previousState.order); // 还原
+                }
+            });
+            
+            sortModal.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+
+        // 排序预览
+        function sortSongsPreview(type, order) {
+            let sortedSongs = [...currentSongs];
+            
+            if (order === 'random') {
+                sortedSongs = sortedSongs.sort(() => Math.random() - 0.5);
+            } else {
+                sortedSongs.sort((a, b) => {
+                    const valueA = type === 'title' ? a.title : a.artist;
+                    const valueB = type === 'title' ? b.title : b.artist;
+                    
+                    if (valueA < valueB) return order === 'asc' ? -1 : 1;
+                    if (valueA > valueB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            return sortedSongs;
+        }
+
+        // 正式排序
+        function sortSongs(type, order) {
+            let sortedSongs = [...currentSongs];
+            
+            if (order === 'random') {
+                sortedSongs = sortedSongs.sort(() => Math.random() - 0.5);
+                randomSortedSongs = [...sortedSongs];
+            } else {
+                sortedSongs.sort((a, b) => {
+                    const valueA = type === 'title' ? a.title : a.artist;
+                    const valueB = type === 'title' ? b.title : b.artist;
+                    
+                    if (valueA < valueB) return order === 'asc' ? -1 : 1;
+                    if (valueA > valueB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            
+            renderSongs(sortedSongs);
+        }
+
+        // 初始化设置页面
+        function initSetting() {
+            // 语言切换
+            languageSelect.addEventListener('change', function() {
+                updateLanguage(this.value);
+            });
+            
+            // 背景图片上传
+            bgFileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        bgContainer.style.backgroundImage = `url(${event.target.result})`;
+                        currentBgType = 'image';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // 背景透明度调整
+            bgOpacity.addEventListener('input', function() {
+                const opacity = parseFloat(this.value);
+                bgContainer.style.opacity = opacity;
+                opacityValue.textContent = `${Math.round(opacity * 100)}%`;
+            });
+        }
+
+        // 初始化设置页侧边栏
+        function initSettingSidebar() {
+            document.querySelectorAll('.setting-sidebar-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.setting-sidebar-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const target = this.dataset.target;
+                    document.querySelectorAll('.setting-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(target).classList.add('active');
+                });
+            });
+        }
+
+        // 初始化颜色选择器
+        function initColorSelector() {
+            document.querySelectorAll('.color-block').forEach(block => {
+                block.addEventListener('click', function() {
+                    document.querySelectorAll('.color-block').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const color = this.dataset.color;
+                    bgContainer.style.backgroundImage = 'none';
+                    document.body.style.backgroundColor = color;
+                    currentColor = color;
+                    currentBgType = 'color';
+                });
+            });
+            
+            document.querySelector(`.color-block[data-color="${currentColor}"]`).classList.add('active');
+        }
+
+        // 更新语言
+        function updateLanguage(lang) {
+            document.getElementById('title').textContent = langPkg[lang].title;
+            document.getElementById('homeText').textContent = langPkg[lang].homeText;
+            document.getElementById('collectText').textContent = langPkg[lang].collectText;
+            document.getElementById('settingText').textContent = langPkg[lang].settingText;
+            document.querySelector('.tag-btn[data-artist="all"]').textContent = langPkg[lang].allTag;
+            document.getElementById('searchInput').placeholder = langPkg[lang].searchPlaceholder;
+            document.getElementById('listTitle').innerHTML = `${langPkg[lang].listTitle} <span id="countText" class="song-count">(${currentSongs.length}首)</span>`;
+            document.getElementById('layoutText').textContent = langPkg[lang].layoutText;
+            document.getElementById('sortText').textContent = langPkg[lang].sortText;
+            document.getElementById('layoutModalTitle').textContent = langPkg[lang].layoutModalTitle;
+            document.getElementById('layoutSingle').nextElementSibling.textContent = langPkg[lang].singleLabel;
+            document.getElementById('layoutDouble').nextElementSibling.textContent = langPkg[lang].doubleLabel;
+            document.getElementById('layoutTriple').nextElementSibling.textContent = langPkg[lang].tripleLabel;
+            document.getElementById('sortModalTitle').textContent = langPkg[lang].sortModalTitle;
+            document.getElementById('orderAsc').nextElementSibling.textContent = langPkg[lang].ascLabel;
+            document.getElementById('orderDesc').nextElementSibling.textContent = langPkg[lang].descLabel;
+            document.getElementById('orderRandom').nextElementSibling.textContent = langPkg[lang].randomLabel;
+            document.getElementById('sortByTitle').nextElementSibling.textContent = langPkg[lang].sortTitleLabel;
+            document.getElementById('sortByArtist').nextElementSibling.textContent = langPkg[lang].sortArtistLabel;
+            document.querySelectorAll('.btn-cancel').forEach(btn => btn.textContent = langPkg[lang].cancelBtn);
+            document.querySelectorAll('.btn-confirm').forEach(btn => btn.textContent = langPkg[lang].confirmBtn);
+            document.getElementById('collectTitle').textContent = langPkg[lang].collectTitle;
+            document.getElementById('collectEmpty').textContent = langPkg[lang].collectEmpty;
+            document.getElementById('langTitle').textContent = langPkg[lang].langTitle;
+            document.querySelector('label[for="languageSelect"]').textContent = langPkg[lang].langLabel;
+            document.getElementById('bgTitle').textContent = langPkg[lang].bgTitle;
+            document.querySelector('label[for="bgFileInput"]').textContent = langPkg[lang].bgImgLabel;
+            document.querySelector('label[for="bgOpacity"]').textContent = langPkg[lang].opacityLabel;
+            document.getElementById('bgColorLabel').textContent = langPkg[lang].bgColorLabel;
+            
+            renderSongs(currentSongs);
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            initPage();
+            initSettingSidebar();
+            initColorSelector();
+        });
+    </script>
+</body>
+</html>
