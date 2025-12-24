@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -687,12 +687,56 @@
 
         // ====================== 歌手&歌曲集中配置区（核心维护区） ======================
         const artistConfig = {
-            judy: { name: "女歌 Judy", songs: `阿刁\n爱\n爱上一个不回家的人\n爱不爱我\n爱之初体验` },
-            ting: { name: "女歌 小婷", songs: `乌兰巴巴托的夜\n旅行\n阳光彩虹小白马\n把悲伤留给自己\n生而为人` },
-            zhiyu: { name: "男歌 致宇", songs: `像梦一样自由    汪峰\n夕阳醉了\t\t张学友\n童话\t\t       光良\n不再犹豫\t\tBeyond \n护花使者\t\t李克勤` },
-            echo: { name: "男歌 Echo", songs: `梦醒时分C\n隆里电丝 (Live)E\n如果这都不算爱D\n花海F\n爱的飞行日记E` },
-            hainan: { name: "女歌 海南", songs: `梦醒\n隆里\n如果\n花海\n爱的` },
-            xiaolajiao: { name: "女歌 小辣椒", songs: `1\n2\n3\n4\n5\n6\n7` },
+            judy: { 
+                name: "女歌 Judy", 
+                songs: `阿刁
+爱
+爱上一个不回家的人
+爱不爱我
+爱之初体验` 
+            },
+            ting: { 
+                name: "女歌 小婷", 
+                songs: `乌兰巴巴托的夜
+旅行
+阳光彩虹小白马
+把悲伤留给自己
+生而为人` 
+            },
+            zhiyu: { 
+                name: "男歌 致宇", 
+                songs: `像梦一样自由    汪峰
+夕阳醉了\t\t张学友
+童话\t\t       光良
+不再犹豫\t\tBeyond 
+护花使者\t\t李克勤` 
+            },
+            echo: { 
+                name: "男歌 Echo", 
+                songs: `梦醒时分C
+隆里电丝 (Live)E
+如果这都不算爱D
+花海F
+爱的飞行日记E` 
+            },
+            hainan: { 
+                name: "女歌 海南", 
+                songs: `梦醒
+隆里
+如果
+花海
+爱的` 
+            },
+            xiaolajiao: { 
+                name: "女歌 小辣椒", 
+                songs: `1
+2
+3
+4
+5
+6
+7` 
+            },
         }
 
         // ====================== GitHub背景图片自动播放配置（新增核心代码） ======================
@@ -706,7 +750,7 @@
             branch: 'main',          // 分支名
             autoRotate: true,        // 是否自动轮换
             interval: 5000,          // 切换间隔（毫秒）
-            randomOrder: true        // 是否随机顺序
+            randomOrder: false       // 是否随机顺序 true是 false否 
         };
 
         // 获取GitHub文件夹中的图片列表
@@ -858,470 +902,342 @@
                 layoutText: "Layout", sortText: "Sort", layoutModalTitle: "Layout Settings",
                 singleLabel: "Single Column", doubleLabel: "Double Columns", tripleLabel: "Triple Columns",
                 sortModalTitle: "Sort Settings", ascLabel: "Ascending (A-Z)", descLabel: "Descending (Z-A)",
-                randomLabel: "Random Sort", sortTitleLabel: "Sort by Name", sortArtistLabel: "Sort by Artist",
+                randomLabel: "Random Order", sortTitleLabel: "Sort by Title", sortArtistLabel: "Sort by Artist",
                 cancelBtn: "Cancel", confirmBtn: "Confirm", collectTitle: "My Collection", collectEmpty: "No collected songs",
                 noSongTip: "No matching songs", langTitle: "Language Settings", langLabel: "Select Language",
-                bgTitle: "Background Settings", bgImgLabel: "Select Local Background Image", bgUrlLabel: "Or enter image URL",
-                opacityLabel: "Background Opacity", bgColorLabel: "Select Solid Background Color"
+                bgTitle: "Background Settings", bgImgLabel: "Select Local Background", bgUrlLabel: "Or enter image URL",
+                opacityLabel: "Background Opacity", bgColorLabel: "Select Solid Color Background"
             }
         };
 
-        // ====================== 初始化页面 ======================
+        // 初始化页面
         function initPage() {
-            // 强制设置背景容器样式
-            bgContainer.style.opacity = '1';
-            bgContainer.style.zIndex = '0';
-            bgContainer.style.backgroundColor = 'transparent';
-            
-            // 启动GitHub背景轮换
-            bgRotator.init().catch(err => {
-                console.warn('自动背景加载失败:', err);
-            });
-            
-            generateArtistTags();
-            renderSongs([...currentSongs].sort(() => Math.random() - 0.5));
-            initTabSwitch();
-            initLayoutSwitch();
-            initSortSwitch();
-            initSetting();
-            initTagClick();
-            initSearch();
-            applyLayout('single');
-            window.addEventListener('resize', () => applyLayout(previousLayout));
+            renderArtistTags();
+            renderSongList(currentSongs);
+            loadCollectSongs();
+            updateCollectPage();
+            initBackground();
+            setupEventListeners();
         }
 
-        // 自动生成歌手标签按钮
-        function generateArtistTags() {
-            let tagsHtml = '<button class="tag-btn active" data-artist="all">歌单大全</button>';
+        // 渲染歌手标签
+        function renderArtistTags() {
             Object.keys(artistConfig).forEach(artistKey => {
-                tagsHtml += `<button class="tag-btn" data-artist="${artistKey}">${artistConfig[artistKey].name}</button>`;
+                const artist = artistConfig[artistKey];
+                const tagBtn = document.createElement('button');
+                tagBtn.className = 'tag-btn';
+                tagBtn.dataset.artist = artistKey;
+                tagBtn.textContent = artist.name;
+                tagContainer.appendChild(tagBtn);
             });
-            tagContainer.innerHTML = tagsHtml;
         }
 
-        // ====================== 核心功能函数 ======================
-        function renderSongs(songs) {
+        // 渲染歌曲列表
+        function renderSongList(songs) {
+            songListContainer.innerHTML = '';
+            countText.textContent = `(${songs.length}首)`;
+            
             if (songs.length === 0) {
-                songListContainer.innerHTML = `<div class="no-song-tip">${langPkg[languageSelect.value].noSongTip}</div>`;
-                countText.textContent = `(0首)`;
+                const noSongTip = document.createElement('div');
+                noSongTip.className = 'no-song-tip';
+                noSongTip.textContent = langPkg[languageSelect.value].noSongTip;
+                songListContainer.appendChild(noSongTip);
                 return;
             }
-
-            songListContainer.innerHTML = songs.map(song => {
-                const isCollected = collectSongs.some(s => s.id === song.id);
-                return `
-                    <div class="song-item ${isCollected ? 'collect-active' : ''}" data-id="${song.id}">
-                        <div class="thumbnail"><div class="placeholder-img">${song.cover}</div></div>
-                        <div class="song-details">
-                            <div class="song-title">${song.title}</div>
-                            <div class="song-artist">${song.artist}</div>
-                        </div>
-                        <i class="fas fa-star collect-star ${isCollected ? 'active' : ''}" data-id="${song.id}"></i>
+            
+            songs.forEach(song => {
+                const isCollected = collectSongs.some(item => item.id === song.id);
+                const songItem = document.createElement('div');
+                songItem.className = 'song-item';
+                songItem.dataset.id = song.id;
+                
+                songItem.innerHTML = `
+                    <div class="thumbnail">
+                        <div class="placeholder-img">${song.cover}</div>
                     </div>
+                    <div class="song-details">
+                        <div class="song-title">${song.title}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <i class="fas fa-star collect-star ${isCollected ? 'active' : ''}"></i>
                 `;
-            }).join('');
-
-            // 绑定收藏事件
-            document.querySelectorAll('.collect-star').forEach(star => {
-                star.addEventListener('click', function(e) {
+                
+                songListContainer.appendChild(songItem);
+                
+                // 添加收藏事件
+                const starIcon = songItem.querySelector('.collect-star');
+                starIcon.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const songId = this.dataset.id;
-                    const songItem = document.querySelector(`.song-item[data-id="${songId}"]`);
-                    const isCollected = this.classList.contains('active');
-
-                    if (isCollected) {
-                        removeCollect(songId);
-                        this.classList.remove('active');
-                        songItem.classList.remove('collect-active');
-                        showTip('取消收藏成功');
-                    } else {
-                        addCollect(songId);
-                        this.classList.add('active');
-                        songItem.classList.add('collect-active');
-                        showTip('收藏歌曲成功');
-                    }
-                    updateCollectPage();
+                    toggleCollect(song);
+                    starIcon.classList.toggle('active');
                 });
             });
-
-            countText.textContent = `(${songs.length}首)`;
         }
 
-        function showTip(text) {
+        // 切换收藏状态
+        function toggleCollect(song) {
+            const index = collectSongs.findIndex(item => item.id === song.id);
+            if (index > -1) {
+                collectSongs.splice(index, 1);
+                showCollectTip('已取消收藏');
+            } else {
+                collectSongs.push(song);
+                showCollectTip('已收藏');
+            }
+            localStorage.setItem('collectSongs', JSON.stringify(collectSongs));
+            updateCollectPage();
+        }
+
+        // 显示收藏提示
+        function showCollectTip(text) {
             collectTip.textContent = text;
             collectTip.classList.add('show');
             setTimeout(() => collectTip.classList.remove('show'), 1500);
         }
 
-        function addCollect(songId) {
-            if (!collectSongs.some(s => s.id === songId)) {
-                const song = currentSongs.find(s => s.id === songId);
-                collectSongs.push(song);
-                updateCollectPage();
+        // 加载收藏歌曲
+        function loadCollectSongs() {
+            const saved = localStorage.getItem('collectSongs');
+            if (saved) {
+                collectSongs = JSON.parse(saved);
             }
         }
 
-        function removeCollect(songId) {
-            collectSongs = collectSongs.filter(s => s.id !== songId);
-            updateCollectPage();
-        }
-
+        // 更新收藏页面
         function updateCollectPage() {
-            if (collectSongs.length === 0) {
-                collectPage.innerHTML = `<h3 id="collectTitle">${langPkg[languageSelect.value].collectTitle}</h3><p id="collectEmpty">${langPkg[languageSelect.value].collectEmpty}</p>`;
-            } else {
-                const html = collectSongs.map(song => {
-                    const isCollected = collectSongs.some(s => s.id === song.id);
-                    return `
-                        <div class="song-item ${isCollected ? 'collect-active' : ''}" data-id="${song.id}">
-                            <div class="thumbnail"><div class="placeholder-img">${song.cover}</div></div>
-                            <div class="song-details">
-                                <div class="song-title">${song.title}</div>
-                                <div class="song-artist">${song.artist}</div>
-                            </div>
-                            <i class="fas fa-star collect-star ${isCollected ? 'active' : ''}" data-id="${song.id}"></i>
-                        </div>
-                    `;
-                }).join('');
-                collectPage.innerHTML = `<h3 id="collectTitle">${langPkg[languageSelect.value].collectTitle}</h3><div class="song-list-content">${html}</div>`;
-            }
-        }
-
-        function initTagClick() {
-            document.querySelectorAll('.tag-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-
-                    const artist = this.dataset.artist;
-                    currentSongs = artist === 'all' ? musicData.all : musicData[artist];
-                    originalSongs = [...currentSongs];
-
-                    sortSongs(previousState.type, previousState.order);
+            const collectContainer = collectPage.querySelector('.song-list-content') || createCollectContainer();
+            
+            collectContainer.innerHTML = '';
+            collectEmpty.style.display = collectSongs.length === 0 ? 'block' : 'none';
+            
+            collectSongs.forEach(song => {
+                const songItem = document.createElement('div');
+                songItem.className = 'song-item';
+                songItem.dataset.id = song.id;
+                
+                songItem.innerHTML = `
+                    <div class="thumbnail">
+                        <div class="placeholder-img">${song.cover}</div>
+                    </div>
+                    <div class="song-details">
+                        <div class="song-title">${song.title}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <i class="fas fa-star collect-star active"></i>
+                `;
+                
+                collectContainer.appendChild(songItem);
+                
+                // 添加取消收藏事件
+                const starIcon = songItem.querySelector('.collect-star');
+                starIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleCollect(song);
+                    starIcon.classList.toggle('active');
                 });
             });
         }
 
-        function initSearch() {
-            searchInput.addEventListener('input', function() {
-                const keyword = this.value.trim().toLowerCase();
-                if (keyword === '') {
-                    currentSongs = [...originalSongs];
-                } else {
-                    currentSongs = originalSongs.filter(song =>
-                        song.title.toLowerCase().includes(keyword)
-                    );
-                }
-                sortSongs(previousState.type, previousState.order);
+        // 创建收藏容器
+        function createCollectContainer() {
+            const container = document.createElement('div');
+            container.className = 'song-list-content single-col';
+            collectPage.appendChild(container);
+            return container;
+        }
+
+        // 初始化背景
+        function initBackground() {
+            bgContainer.style.backgroundColor = currentColor;
+            bgContainer.style.opacity = bgOpacity.value;
+            opacityValue.textContent = `${Math.round(bgOpacity.value * 100)}%`;
+            
+            // 尝试加载GitHub图片
+            bgRotator.init().catch(err => {
+                console.log('使用默认背景图');
+                bgContainer.style.backgroundImage = `url(${DEFAULT_BG_URL})`;
+                currentBgType = 'image';
             });
         }
 
-        function initTabSwitch() {
-            homeTab.addEventListener('click', function() {
-                setActiveTab(this);
+        // 设置事件监听
+        function setupEventListeners() {
+            // 标签切换
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const artist = btn.dataset.artist;
+                    currentSongs = artist === 'all' ? musicData.all : musicData[artist];
+                    originalSongs = [...currentSongs];
+                    sortSongs(tempSortState.type, tempSortState.order);
+                    renderSongList(currentSongs);
+                });
+            });
+
+            // 搜索功能
+            searchInput.addEventListener('input', () => {
+                const keyword = searchInput.value.trim().toLowerCase();
+                currentSongs = originalSongs.filter(song => 
+                    song.title.toLowerCase().includes(keyword) || 
+                    song.artist.toLowerCase().includes(keyword)
+                );
+                renderSongList(currentSongs);
+            });
+
+            // 布局模态框
+            layoutTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                layoutModal.style.display = 'block';
+                document.querySelectorAll('input[name="layoutType"]').forEach(radio => {
+                    radio.checked = radio.value === previousLayout;
+                });
+            });
+
+            // 排序模态框
+            sortTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sortModal.style.display = 'block';
+                document.querySelectorAll('input[name="sortOrder"]').forEach(radio => {
+                    radio.checked = radio.value === previousState.order;
+                });
+                document.querySelectorAll('input[name="sortType"]').forEach(radio => {
+                    radio.checked = radio.value === previousState.type;
+                });
+            });
+
+            // 关闭模态框
+            document.addEventListener('click', (e) => {
+                if (!layoutModal.contains(e.target) && e.target !== layoutTrigger) {
+                    layoutModal.style.display = 'none';
+                }
+                if (!sortModal.contains(e.target) && e.target !== sortTrigger) {
+                    sortModal.style.display = 'none';
+                }
+            });
+
+            // 布局取消
+            layoutCancelBtn.addEventListener('click', () => {
+                layoutModal.style.display = 'none';
+            });
+
+            // 布局确认
+            layoutConfirmBtn.addEventListener('click', () => {
+                const layout = document.querySelector('input[name="layoutType"]:checked').value;
+                songListContainer.className = `song-list-content ${layout}-col`;
+                previousLayout = layout;
+                layoutModal.style.display = 'none';
+            });
+
+            // 排序取消
+            cancelBtn.addEventListener('click', () => {
+                sortModal.style.display = 'none';
+            });
+
+            // 排序确认
+            confirmBtn.addEventListener('click', () => {
+                const order = document.querySelector('input[name="sortOrder"]:checked').value;
+                const type = document.querySelector('input[name="sortType"]:checked').value;
+                previousState = { order, type };
+                sortSongs(type, order);
+                renderSongList(currentSongs);
+                sortModal.style.display = 'none';
+            });
+
+            // 标签页切换
+            homeTab.addEventListener('click', () => {
+                setActiveTab(homeTab);
                 homePage.style.display = 'block';
                 collectPage.style.display = 'none';
                 settingPage.style.display = 'none';
             });
 
-            collectTab.addEventListener('click', function() {
-                setActiveTab(this);
+            collectTab.addEventListener('click', () => {
+                setActiveTab(collectTab);
                 homePage.style.display = 'none';
                 collectPage.style.display = 'flex';
                 settingPage.style.display = 'none';
                 updateCollectPage();
             });
 
-            settingTab.addEventListener('click', function() {
-                setActiveTab(this);
+            settingTab.addEventListener('click', () => {
+                setActiveTab(settingTab);
                 homePage.style.display = 'none';
                 collectPage.style.display = 'none';
                 settingPage.style.display = 'flex';
             });
-        }
 
-        function setActiveTab(tab) {
-            document.querySelectorAll('.tab-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            tab.classList.add('active');
-        }
-
-        function initLayoutSwitch() {
-            let isLayoutModalOpen = false;
-
-            layoutTrigger.addEventListener('click', function(e) {
-                e.stopPropagation();
-                isLayoutModalOpen = !isLayoutModalOpen;
-                layoutModal.style.display = isLayoutModalOpen ? 'block' : 'none';
-                sortModal.style.display = 'none';
-
-                tempLayout = previousLayout;
-                if (tempLayout === 'single') layoutSingle.checked = true;
-                else if (tempLayout === 'double') layoutDouble.checked = true;
-                else if (tempLayout === 'triple') layoutTriple.checked = true;
-            });
-
-            layoutSingle.addEventListener('change', function() {
-                if (isLayoutModalOpen) {
-                    tempLayout = 'single';
-                    applyLayout(tempLayout);
-                    songListContainer.style.display = 'none';
-                    setTimeout(() => songListContainer.style.display = 'grid', 0);
-                }
-            });
-
-            layoutDouble.addEventListener('change', function() {
-                if (isLayoutModalOpen) {
-                    tempLayout = 'double';
-                    applyLayout(tempLayout);
-                    songListContainer.style.display = 'none';
-                    setTimeout(() => songListContainer.style.display = 'grid', 0);
-                }
-            });
-
-            layoutTriple.addEventListener('change', function() {
-                if (isLayoutModalOpen) {
-                    tempLayout = 'triple';
-                    applyLayout(tempLayout);
-                    songListContainer.style.display = 'none';
-                    setTimeout(() => songListContainer.style.display = 'grid', 0);
-                }
-            });
-
-            layoutCancelBtn.addEventListener('click', function() {
-                isLayoutModalOpen = false;
-                layoutModal.style.display = 'none';
-                applyLayout(previousLayout);
-                songListContainer.style.display = 'none';
-                setTimeout(() => songListContainer.style.display = 'grid', 0);
-            });
-
-            layoutConfirmBtn.addEventListener('click', function() {
-                isLayoutModalOpen = false;
-                layoutModal.style.display = 'none';
-                previousLayout = tempLayout;
-                applyLayout(previousLayout);
-                songListContainer.style.display = 'none';
-                setTimeout(() => songListContainer.style.display = 'grid', 0);
-            });
-
-            document.addEventListener('click', function() {
-                if (isLayoutModalOpen) {
-                    isLayoutModalOpen = false;
-                    layoutModal.style.display = 'none';
-                    applyLayout(previousLayout);
-                    songListContainer.style.display = 'none';
-                    setTimeout(() => songListContainer.style.display = 'grid', 0);
-                }
-            });
-
-            layoutModal.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        }
-
-        function applyLayout(type) {
-            songListContainer.classList.remove('single-col', 'two-col', 'three-col');
-            if (type === 'single') {
-                songListContainer.classList.add('single-col');
-            } else if (type === 'double') {
-                songListContainer.classList.add('two-col');
-            } else if (type === 'triple') {
-                songListContainer.classList.add('three-col');
-            }
-        }
-
-        function initSortSwitch() {
-            let isSortModalOpen = false;
-
-            sortTrigger.addEventListener('click', function(e) {
-                e.stopPropagation();
-                isSortModalOpen = !isSortModalOpen;
-                sortModal.style.display = isSortModalOpen ? 'block' : 'none';
-                layoutModal.style.display = 'none';
-
-                tempSortState = { ...previousState };
-                tempSortedSongs = [...currentSongs];
-
-                if (tempSortState.order === 'asc') orderAsc.checked = true;
-                else if (tempSortState.order === 'desc') orderDesc.checked = true;
-                else orderRandom.checked = true;
-
-                if (tempSortState.type === 'title') sortByTitle.checked = true;
-                else sortByArtist.checked = true;
-            });
-
-            orderAsc.addEventListener('change', function() {
-                if (isSortModalOpen) {
-                    tempSortState.order = 'asc';
-                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
-                    renderSongs(tempSortedSongs);
-                }
-            });
-
-            orderDesc.addEventListener('change', function() {
-                if (isSortModalOpen) {
-                    tempSortState.order = 'desc';
-                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
-                    renderSongs(tempSortedSongs);
-                }
-            });
-
-            orderRandom.addEventListener('change', function() {
-                if (isSortModalOpen) {
-                    tempSortState.order = 'random';
-                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
-                    renderSongs(tempSortedSongs);
-                }
-            });
-
-            sortByTitle.addEventListener('change', function() {
-                if (isSortModalOpen) {
-                    tempSortState.type = 'title';
-                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
-                    renderSongs(tempSortedSongs);
-                }
-            });
-
-            sortByArtist.addEventListener('change', function() {
-                if (isSortModalOpen) {
-                    tempSortState.type = 'artist';
-                    tempSortedSongs = sortSongsPreview(tempSortState.type, tempSortState.order);
-                    renderSongs(tempSortedSongs);
-                }
-            });
-
-            cancelBtn.addEventListener('click', function() {
-                isSortModalOpen = false;
-                sortModal.style.display = 'none';
-                sortSongs(previousState.type, previousState.order);
-            });
-
-            confirmBtn.addEventListener('click', function() {
-                isSortModalOpen = false;
-                sortModal.style.display = 'none';
-                previousState = { ...tempSortState };
-                currentSongs = [...tempSortedSongs];
-            });
-
-            document.addEventListener('click', function() {
-                if (isSortModalOpen) {
-                    isSortModalOpen = false;
-                    sortModal.style.display = 'none';
-                    sortSongs(previousState.type, previousState.order);
-                }
-            });
-
-            sortModal.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        }
-
-        function sortSongsPreview(type, order) {
-            let sortedSongs = [...currentSongs];
-            if (order === 'random') {
-                sortedSongs = sortedSongs.sort(() => Math.random() - 0.5);
-            } else {
-                sortedSongs.sort((a, b) => {
-                    const valueA = type === 'title' ? a.title : a.artist;
-                    const valueB = type === 'title' ? b.title : b.artist;
-                    if (valueA < valueB) return order === 'asc' ? -1 : 1;
-                    if (valueA > valueB) return order === 'asc' ? 1 : -1;
-                    return 0;
-                });
-            }
-            return sortedSongs;
-        }
-
-        function sortSongs(type, order) {
-            let sortedSongs = [...currentSongs];
-            if (order === 'random') {
-                sortedSongs = sortedSongs.sort(() => Math.random() - 0.5);
-            } else {
-                sortedSongs.sort((a, b) => {
-                    const valueA = type === 'title' ? a.title : a.artist;
-                    const valueB = type === 'title' ? b.title : b.artist;
-                    if (valueA < valueB) return order === 'asc' ? -1 : 1;
-                    if (valueA > valueB) return order === 'asc' ? 1 : -1;
-                    return 0;
-                });
-            }
-            renderSongs(sortedSongs);
-        }
-
-        function initSetting() {
-            languageSelect.addEventListener('change', function() {
-                updateLanguage(this.value);
-            });
-
-            bgFileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        bgContainer.style.backgroundImage = `url(${event.target.result})`;
-                        currentBgType = 'image';
-                        bgUrlInput.value = '';
-                        bgRotator.stop(); // 停止自动轮换
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            bgUrlConfirmBtn.addEventListener('click', function() {
-                const url = bgUrlInput.value.trim();
-                if (url) {
-                    bgContainer.style.backgroundImage = `url(${url})`;
-                    currentBgType = 'image';
-                    bgFileInput.value = '';
-                    bgRotator.stop(); // 停止自动轮换
-                }
-            });
-
-            bgOpacity.addEventListener('input', function() {
-                const opacity = parseFloat(this.value);
-                bgContainer.style.opacity = opacity;
-                opacityValue.textContent = `${Math.round(opacity * 100)}%`;
-            });
-        }
-
-        function initSettingSidebar() {
+            // 设置标签切换
             document.querySelectorAll('.setting-sidebar-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', () => {
                     document.querySelectorAll('.setting-sidebar-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-
-                    const target = this.dataset.target;
+                    btn.classList.add('active');
+                    const target = btn.dataset.target;
                     document.querySelectorAll('.setting-content').forEach(content => {
                         content.classList.remove('active');
                     });
                     document.getElementById(target).classList.add('active');
                 });
             });
-        }
 
-        function initColorSelector() {
-            document.querySelectorAll('.color-block').forEach(block => {
-                block.addEventListener('click', function() {
-                    document.querySelectorAll('.color-block').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
+            // 语言切换
+            languageSelect.addEventListener('change', changeLanguage);
 
-                    const color = this.dataset.color;
-                    bgContainer.style.backgroundImage = 'none';
-                    document.body.style.backgroundColor = color;
-                    currentColor = color;
-                    currentBgType = 'color';
-                    bgFileInput.value = '';
-                    bgUrlInput.value = '';
-                    bgRotator.stop(); // 停止自动轮换
-                });
+            // 背景透明度
+            bgOpacity.addEventListener('input', () => {
+                const value = parseFloat(bgOpacity.value);
+                bgContainer.style.opacity = value;
+                opacityValue.textContent = `${Math.round(value * 100)}%`;
             });
 
-            document.querySelector(`.color-block[data-color="${currentColor}"]`).classList.add('active');
+            // 本地背景
+            bgFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        bgContainer.style.backgroundImage = `url(${event.target.result})`;
+                        currentBgType = 'image';
+                        bgRotator.stop();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // 网络背景
+            bgUrlConfirmBtn.addEventListener('click', () => {
+                const url = bgUrlInput.value.trim();
+                if (url) {
+                    bgContainer.style.backgroundImage = `url(${url})`;
+                    currentBgType = 'image';
+                    bgRotator.stop();
+                }
+            });
+
+            // 纯色背景
+            document.querySelectorAll('.color-block').forEach(block => {
+                block.addEventListener('click', () => {
+                    document.querySelectorAll('.color-block').forEach(b => b.classList.remove('active'));
+                    block.classList.add('active');
+                    const color = block.dataset.color;
+                    bgContainer.style.backgroundImage = 'none';
+                    bgContainer.style.backgroundColor = color;
+                    currentBgType = 'color';
+                    currentColor = color;
+                    bgRotator.stop();
+                });
+            });
         }
 
-        function updateLanguage(lang) {
+        // 设置激活标签
+        function setActiveTab(tab) {
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        }
+
+        // 切换语言
+        function changeLanguage() {
+            const lang = languageSelect.value;
             document.getElementById('title').textContent = langPkg[lang].title;
             document.getElementById('homeText').textContent = langPkg[lang].homeText;
             document.getElementById('collectText').textContent = langPkg[lang].collectText;
@@ -1352,17 +1268,32 @@
             document.getElementById('bgUrlLabel').textContent = langPkg[lang].bgUrlLabel;
             document.querySelector('label[for="bgOpacity"]').textContent = langPkg[lang].opacityLabel;
             document.getElementById('bgColorLabel').textContent = langPkg[lang].bgColorLabel;
-
-            renderSongs(currentSongs);
+            
+            // 更新无歌曲提示
+            if (currentSongs.length === 0) {
+                const noSongTip = songListContainer.querySelector('.no-song-tip');
+                if (noSongTip) noSongTip.textContent = langPkg[lang].noSongTip;
+            }
         }
 
-        // 页面加载完成后初始化
-        window.addEventListener('DOMContentLoaded', function() {
-            initPage();
-            initSettingSidebar();
-            initColorSelector();
-        });
+        // 排序歌曲
+        function sortSongs(type, order) {
+            if (order === 'random') {
+                currentSongs = [...currentSongs].sort(() => Math.random() - 0.5);
+                return;
+            }
+            
+            currentSongs = [...currentSongs].sort((a, b) => {
+                const valueA = a[type].toLowerCase();
+                const valueB = b[type].toLowerCase();
+                if (valueA < valueB) return order === 'asc' ? -1 : 1;
+                if (valueA > valueB) return order === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        // 初始化页面
+        initPage();
     </script>
 </body>
 </html>
-
